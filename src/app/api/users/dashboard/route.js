@@ -3,41 +3,35 @@ import User from "@/models/userModel";
 import { NextRequest, NextResponse } from "next/server";
 import bcryptjs from "bcryptjs";
 
+var coinbase = require("coinbase-commerce-node");
+var Client = coinbase.Client;
+var resources = coinbase.resources;
+
+Client.init(process.env.COINBASE_API_KEY);
+
 connect();
 
 export async function POST(NextRequest) {
+  // const reqBody = await NextRequest.json();
+  // const { amount, currency } = reqBody;
+  // console.log("amm", amount);
   try {
-    const reqBody = await NextRequest.json();
-    const { username, email, password } = reqBody;
-    console.log(reqBody);
-
-    //check if user is alsready exists
-    const user = await User.findOne({ email });
-    if (user) {
-      return NextResponse.json(
-        { error: "User already exists" },
-        { status: 400 }
-      );
-    }
-
-    //hash password
-    const salt = await bcryptjs.genSalt(10);
-    const hashedPassword = await bcryptjs.hash(password, salt);
-
-    const newUser = new User({
-      username,
-      email,
-      password: hashedPassword,
+    const charge = await resources.Charge.create({
+      name: "Test Charge",
+      description: "Test charge description",
+      local_price: {
+        amount: 100,
+        currency: "USD",
+      },
+      pricing_type: "fixed_price",
+      metadata: {
+        user_id: "user",
+      },
     });
 
-    const savedUser = await newUser.save();
-    console.log(savedUser);
+    console.log("running...");
 
-    return NextResponse.json({
-      message: "User created successfully",
-      success: true,
-      savedUser,
-    });
+    return NextResponse.json({ charge: charge }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

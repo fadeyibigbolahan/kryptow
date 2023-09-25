@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import {
   FaChevronRight,
@@ -38,6 +38,47 @@ const menu = [
 function page() {
   const router = useRouter();
   const [open, setOpen] = useState(true);
+  const [showWarning, setShowWarning] = useState(false);
+  const [data, setData] = useState();
+  const [hostUri, setHostUri] = useState("");
+
+  useEffect(() => {
+    payment();
+    getUserDetails();
+    console.log("about to be done");
+  }, []);
+
+  const payment = async () => {
+    try {
+      await axios
+        .post("/api/users/dashboard")
+        .then(function (response) {
+          setHostUri(response?.data.charge.hosted_url);
+          console.log(response?.data);
+        })
+        .catch(function (error) {
+          console.log(error);
+        });
+    } catch (error) {
+      console.log(error.message);
+      toast.error(error.message);
+    }
+  };
+
+  const getUserDetails = async () => {
+    const res = await axios.get("/api/users/me");
+    console.log("from dashboard", res.data.data);
+    setData(res.data.data);
+  };
+
+  if (hostUri !== "") {
+    console.log("hosttt", hostUri);
+    // window.location.replace(hostUri);
+  }
+
+  const deposit = () => {
+    window.location.replace(hostUri);
+  };
 
   const logout = async () => {
     try {
@@ -56,15 +97,15 @@ function page() {
         <div className="flex justify-between items-center p-2 w-1/5 h-20 ">
           <Image src={crypt} alt="Logo" width="350px" height="300px" />
         </div>
-        <div className="md:flex hidden justify-evenly items-center w-3/5 text-white">
+        {/* <div className="md:flex hidden justify-evenly items-center w-3/5 text-white">
           <p>Home</p>
           <p>About</p>
           <p>Services</p>
           <p>Mission</p>
           <p>Contact</p>
-        </div>
+        </div> */}
         <div className="flex justify-center items-center w-1/5">
-          <p className="text-white mr-4">one@gmail.com</p>
+          <p className="text-white mr-4">{data?.email}</p>
           <button
             onClick={logout}
             className="flex justify-center items-center w-18 rounded-sm bg-white p-2"
@@ -100,7 +141,7 @@ function page() {
       </div> */}
       <div className="text-xl flex-1 h-screen md:mx-10">
         <div className="p-7">
-          <h1 className="font-semibold">Good day, One</h1>
+          <h1 className="font-semibold">Good day, {data?.username}</h1>
           <p>Welcome to escrowapp.com</p>
           <div className="flex flex-col justify-between p-1 border font-normal border-[#181380] rounded-md my-4 h-24">
             <p>Available Balance</p>
@@ -114,8 +155,11 @@ function page() {
             <p>You have no transactions yet.</p>
             <p>Get started by making your first deposit.</p>
             <button
-              onClick={() => alert("I'm working")}
-              className="flex justify-center items-center rounded-sm bg-[#181380] text-white p-3 m-5"
+              onClick={() => deposit()}
+              disabled={hostUri == "" ? true : false}
+              className={`flex justify-center items-center rounded-sm ${
+                hostUri == "" ? "bg-[#c1c1c1]" : "bg-[#181380]"
+              } text-white p-3 m-5`}
             >
               <FaCreditCard size={20} className="mr-4" color="white" />
               Deposit
@@ -171,8 +215,14 @@ function page() {
               <option value="buyer">Buyer</option>
               <option value="seller">Seller</option>
             </select>
+            {showWarning == true && (
+              <div className="flex justify-center items-center rounded-sm w-full md:p-4 p-2 bg-red-500 text-white my-2">
+                <p>Kindly fund your wallet before making any transactions</p>
+              </div>
+            )}
             <button
               type="submit"
+              onClick={() => setShowWarning(true)}
               className="w-full p-2 rounded-md text-white bg-[#181380]"
             >
               Trade
